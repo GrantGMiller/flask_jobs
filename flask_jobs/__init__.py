@@ -6,9 +6,9 @@ import pickle
 
 from dictabase import (
     RegisterDBURI,
-    New
+    New, FindAll, FindOne
 )
-from .jobs import Job, RepeatingJob
+from .jobs import Job
 from .worker import Worker
 
 RegisterDBURI('sqlite:///JobStore.db')
@@ -58,25 +58,40 @@ def ScheduleJob(dt, func, args=(), kwargs={}):
     return newJob
 
 
-def RepeatJob(repeatCallback, func, args=(), kwargs={}):
+def RepeatJob(startDT=None, func=None, args=(), kwargs={}, **k):
     '''
-    :param repeatCallback: a function that should return the next call time as a datetime object
     :param func: callable
     :param args: tuple
     :param kwargs: dict
+    :param k: weeks, days, hours, minutes, seconds (anything supported by datetime.timedelta.__init__
     :return:
     '''
+    if len(k) == 0:
+        raise KeyError('You must pass one of the following kwargs (weeks, days, hours, minutes, seconds)')
+    startDT = startDT or datetime.datetime.utcnow()
+
     newJob = New(
-        RepeatingJob,
-        dt=repeatCallback(),
-        repeatCallback=pickle.dumps(repeatCallback),
+        Job,
+        startDT=startDT,
+        dt=startDT,
         func=pickle.dumps(func),
         args=pickle.dumps(args),
         kwargs=pickle.dumps(kwargs),
-        kind='repeat'
+        kind='repeat',
+        deltaKwargs=k,
     )
     # print('newJob=', newJob)
     _worker.Refresh()
     return newJob
+
+
+def GetJobs():
+    for job in FindAll(Job, status='pending'):
+        yield job
+
+
+def GetJob(jobID):
+    return FindOne(Job, id=jobID)
+
 
 _worker.Refresh()
