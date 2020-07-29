@@ -51,7 +51,7 @@ def ScheduleJob(dt, func, args=(), kwargs={}):
         func=pickle.dumps(func),
         args=pickle.dumps(args),
         kwargs=pickle.dumps(kwargs),
-        kind='schedule'
+        kind='schedule',
     )
     # print('newJob=', newJob)
     _worker.Refresh()

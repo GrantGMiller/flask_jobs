@@ -22,63 +22,43 @@ class Job(BaseTable):
     def __init__(self, *a, **k):
         super().__init__(*a, **k)
         self['status'] = 'pending'
-        self._lockDoJob = threading.Lock()
 
     def DoJob(self):
-        with self._lockDoJob:
-            # print('29 DoJob()', self['id'], self)
-            if self['status'] != 'pending':
-                raise RuntimeError('Cannot DoJob() twice.')
+        # print('DoJob(self=', self)
 
+        if self['status'] != 'pending':
+            raise RuntimeError('This job has already been done.')
+
+        try:
             func = pickle.loads(self['func'])
             args = pickle.loads(self['args'])
             kwargs = pickle.loads(self['kwargs'])
+            self['status'] = 'starting'
+            ret = func(*args, **kwargs)
+            self['status'] = 'complete'
+            self['error'] = ''
+        except Exception as e:
+            print('DoJob Exception:', e)
+            ret = e
+            self['status'] = 'error'
+            self['error'] = str(e)
 
-            try:
-                self['status'] = 'starting'
-                ret = func(*args, **kwargs)
-                self['status'] = 'complete'
-            except Exception as e:
-                print('DoJob Exception:', e)
-                ret = e
-                self['status'] = 'error'
-                self['error'] = str(e)
+        if self['kind'] == 'repeat':
+            self.Refresh()
 
-            if self['kind'] == 'repeat':
-                self.Refresh()
+        self['lastDoJobTime'] = datetime.datetime.utcnow()
+        return ret
 
-            return ret
-
-    def Cancel(self):
+    def Delete(self):
         Delete(self)
 
     def Refresh(self):
-        if self['status'] != 'pending':
-            oldDT = self['dt']
-            self['dt'] = self._GetNextRepeatDT()
-            newDT = self['dt']
-            # if newDT - oldDT > datetime.timedelta(**self['deltaKwargs']):
-
-            # print('self=', self)
-            # print('oldDT=', oldDT)
-            # print('newDT=', newDT)
-            # print('nowDT=', datetime.datetime.utcnow())
-            # print('newDT-oldDT=', newDT - oldDT)
-            # print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', self['deltaKwargs'])
-            self['status'] = 'pending'
-
-    def _GetNextRepeatDT(self):
-        nowDT = datetime.datetime.utcnow()
-        if self['dt'] > nowDT:
-            return self['dt']
-
+        # print('Job.Refresh(self=', self)
         delta = datetime.timedelta(**self['deltaKwargs'])
-        if delta.total_seconds() <= 0:
-            raise ValueError('delta must be greater than 0')
-
         nextDT = self['dt']
+        nowDT = datetime.datetime.utcnow()
         while nextDT < nowDT:
-            # keep adding the delta until its in the future
-            nextDT = nextDT + delta
-
-        return nextDT
+            nextDT += delta
+        self['dt'] = nextDT
+        self['status'] = 'pending'
+        # print('after Job.Refresh(self=', self)
