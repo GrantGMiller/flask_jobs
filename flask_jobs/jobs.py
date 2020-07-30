@@ -23,7 +23,7 @@ class Job(BaseTable):
         super().__init__(*a, **k)
         self['status'] = 'pending'
 
-    def DoJob(self):
+    def DoJob(self, worker):
         # print('DoJob(self=', self)
 
         if self['status'] != 'pending':
@@ -45,6 +45,7 @@ class Job(BaseTable):
 
         if self['kind'] == 'repeat':
             self.Refresh()
+            worker.Refresh()
 
         self['lastDoJobTime'] = datetime.datetime.utcnow()
         return ret

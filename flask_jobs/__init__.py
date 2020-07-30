@@ -3,20 +3,51 @@ All datetimes are in UTC
 '''
 import datetime
 import pickle
-
+from dictabase import RegisterDBURI as dictabase_RegisterDBURI
 from dictabase import (
-    RegisterDBURI,
-    New, FindAll, FindOne
+    New, FindAll, FindOne,
+
 )
 from .jobs import Job
 from .worker import Worker
 
-RegisterDBURI('sqlite:///JobStore.db')
 
-_worker = Worker()
+class WorkerManager:
+    def __init__(self):
+        self._workers = []
+
+    def RegisterNewWorker(self, thisWorker):
+        if thisWorker not in self._workers:
+            self._workers.append(thisWorker)
+        self.RefreshAllWorkers()
+        print('23 workers=', len(self._workers))
+
+    def RemoveWorker(self, thisWorker):
+        if thisWorker in self._workers:
+            self._workers.remove(thisWorker)
+        self.RefreshAllWorkers()
+        print('23 workers=', len(self._workers))
+
+    def RefreshAllWorkers(self, calledFromWorker=None):
+        for thisWorker in self._workers:
+            if thisWorker != calledFromWorker:
+                thisWorker.Refresh()
 
 
-def AddJob(func, args=(), kwargs={}):
+workerManager = WorkerManager()
+
+
+def init_app(app=None):
+    if app:
+        dictabase_RegisterDBURI(app.config['DATABASE_URL'])
+    else:
+        dictabase_RegisterDBURI()
+
+    thisWorker = Worker()
+    workerManager.RegisterNewWorker(thisWorker)
+
+
+def AddJob(func, args=(), kwargs={}, name=None):
     '''
     Schedule a job to be run ASAP
     :param func: callable
@@ -31,12 +62,13 @@ def AddJob(func, args=(), kwargs={}):
         args=pickle.dumps(args),
         kwargs=pickle.dumps(kwargs),
         kind='asap',
+        name=name,
     )
-    _worker.Refresh()
+    workerManager.RefreshAllWorkers()
     return newJob
 
 
-def ScheduleJob(dt, func, args=(), kwargs={}):
+def ScheduleJob(dt, func, args=(), kwargs={}, name=None):
     '''
     Schedule a job to be run once at a future time
     :param dt: datetime
@@ -52,17 +84,20 @@ def ScheduleJob(dt, func, args=(), kwargs={}):
         args=pickle.dumps(args),
         kwargs=pickle.dumps(kwargs),
         kind='schedule',
+        name=name,
     )
     # print('newJob=', newJob)
-    _worker.Refresh()
+    workerManager.RefreshAllWorkers()
     return newJob
 
 
-def RepeatJob(startDT=None, func=None, args=(), kwargs={}, **k):
+def RepeatJob(startDT=None, func=None, args=(), kwargs={}, name=None, **k):
     '''
+    :param startDT: the first datetime that this job is executed. All future jobs will be calculated from this value.
     :param func: callable
     :param args: tuple
     :param kwargs: dict
+    :param name: str - used to give the job a friendly name
     :param k: weeks, days, hours, minutes, seconds (anything supported by datetime.timedelta.__init__
     :return:
     '''
@@ -79,9 +114,10 @@ def RepeatJob(startDT=None, func=None, args=(), kwargs={}, **k):
         kwargs=pickle.dumps(kwargs),
         kind='repeat',
         deltaKwargs=k,
+        name=name,
     )
     # print('newJob=', newJob)
-    _worker.Refresh()
+    workerManager.RefreshAllWorkers()
     return newJob
 
 
@@ -94,4 +130,4 @@ def GetJob(jobID):
     return FindOne(Job, id=jobID)
 
 
-_worker.Refresh()
+workerManager.RefreshAllWorkers()
