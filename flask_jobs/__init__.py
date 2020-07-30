@@ -16,6 +16,10 @@ class WorkerManager:
     def __init__(self):
         self._workers = []
 
+    @property
+    def AllWorkers(self):
+        return self._workers.copy()
+
     def RegisterNewWorker(self, thisWorker):
         if thisWorker not in self._workers:
             self._workers.append(thisWorker)
@@ -33,6 +37,11 @@ class WorkerManager:
             if thisWorker != calledFromWorker:
                 thisWorker.Refresh()
 
+    def KillAllWorkers(self):
+        for thisWorker in self._workers.copy():
+            thisWorker.Kill()
+            self.RemoveWorker(thisWorker)
+
 
 workerManager = WorkerManager()
 
@@ -43,8 +52,11 @@ def init_app(app=None):
     else:
         dictabase_RegisterDBURI()
 
-    thisWorker = Worker()
-    workerManager.RegisterNewWorker(thisWorker)
+    if len(workerManager.AllWorkers) == 0: # limit to 1 worker for now
+        thisWorker = Worker()
+        workerManager.RegisterNewWorker(thisWorker)
+
+    app.teardown_appcontext(workerManager.KillAllWorkers)
 
 
 def AddJob(func, args=(), kwargs={}, name=None):
