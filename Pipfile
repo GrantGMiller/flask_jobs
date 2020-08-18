@@ -9,6 +9,7 @@ verify_ssl = true
 pytest = "*"
 twine = "*"
 flask-dictabase = "*"
+flask-jobs = "==1.0.2"
 
 [requires]
 python_version = "3.8"
