@@ -6,9 +6,9 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-dictabase = "==4.0.16"
 pytest = "*"
 twine = "*"
+flask-dictabase = "*"
 
 [requires]
 python_version = "3.8"

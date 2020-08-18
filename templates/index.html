@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+Index at {{ utcnow }}
+<hr>
+<a href="/add_now_job">Add Now Job</a>
+<br>
+<a href="/add_later_job">Add Later Job (5 sec)</a>
+<br>
+<a href="/add_repeat_job">Add Repeat Job</a>
+<br>
+<a href="/">Refresh</a>
+<hr>
+{% for job in jobs %}
+<a href="/delete/{{job['id']}}">Delete</a>{{ job }}<br>
+{% endfor %}
+
+</body>
+</html>

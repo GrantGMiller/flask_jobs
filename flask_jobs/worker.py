@@ -1,19 +1,18 @@
 import datetime
 import threading
-from dictabase import FindAll, FindOne
 from .jobs import Job
 
 
 class Worker:
-    def __init__(self, manager=None):
+    def __init__(self, db=None):
         self._running = True
-        self._manager = manager
+        self._db = db
         self._timer = None
         self._lock = threading.Lock()
+        self.Refresh()
 
-    def Refresh(self, newTimeout=0):
-        if self._manager:
-            self._manager.RefreshAllWorkers(calledFromWorker=self)
+    def Refresh(self, newTimeout=0.1):
+        # print('Refresh(', newTimeout)
         self.StopTimer()
         self._timer = threading.Timer(newTimeout, self.DoJobs)
         self._timer.start()
@@ -24,19 +23,23 @@ class Worker:
                 self._timer.cancel()
 
     def DoJobs(self):
+        # print('self.DoJobs(', self)
         if self._running:
             with self._lock:
                 self.StopTimer()
                 nowDT = datetime.datetime.utcnow()
 
                 # Do all jobs that are past their self['dt']
-                for job in FindAll(Job, status='pending', _orderBy='dt'):
+                jobs = list(self._db.FindAll(Job, status='pending', _orderBy='dt'))
+                # print('nowDT=', nowDT)
+                # print('32 jobs=', jobs)
+                for job in jobs:
                     if job['dt'] < nowDT:
                         job.DoJob(self)
-                        del job # forces the job to be committed to db
+                        del job  # forces the job to be committed to db
 
                 # Find the next 'schedule' or 'repeat' Job
-                nextJobList = list(FindAll(Job, status='pending', _orderBy='dt', _limit=1))
+                nextJobList = list(self._db.FindAll(Job, status='pending', _orderBy='dt', _limit=1))
                 # print('nextJobList=', nextJobList)
                 if nextJobList:
                     nextJob = nextJobList[0]
@@ -45,8 +48,7 @@ class Worker:
                     self.Refresh(delta)
 
     def __del__(self):
-        self._running = False
-        self.StopTimer()
+        self.Kill()
 
     def Kill(self):
         self._running = False

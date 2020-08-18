@@ -1,13 +1,9 @@
 import datetime
-
-from dictabase import (
-    BaseTable, FindAll, Delete, Drop,
-)
+import flask_dictabase
 import pickle
-import threading
 
 
-class Job(BaseTable):
+class Job(flask_dictabase.BaseTable):
     '''
     Acts like a python dict()
 
@@ -51,7 +47,7 @@ class Job(BaseTable):
         return ret
 
     def Delete(self):
-        Delete(self)
+        self.db.Delete(self)
 
     def Refresh(self):
         # print('Job.Refresh(self=', self)
