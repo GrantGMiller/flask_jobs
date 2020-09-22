@@ -19,7 +19,11 @@ class JobScheduler:
             self.init_app(app)
 
     def init_app(self, app):
-        self.db = flask_dictabase.Dictabase(app)  # adds the app.db value
+        if not hasattr(app, 'db'):
+            self.db = flask_dictabase.Dictabase(app)  # adds the app.db value
+        else:
+            self.db = app.db
+
         self.worker = Worker(self.db)
 
     def AddJob(self, func, args=(), kwargs={}, name=None):
