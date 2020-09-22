@@ -105,3 +105,6 @@ class JobScheduler:
 
     def GetJob(self, jobID):
         return self.db.FindOne(Job, id=jobID)
+
+    def RefreshWorker(self):
+        self.worker.Refresh()
