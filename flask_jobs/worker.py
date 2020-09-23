@@ -12,7 +12,6 @@ class Worker:
         self.Refresh()
 
     def Refresh(self, newTimeout=0.1):
-        # print('Refresh(', newTimeout)
         self.StopTimer()
         self._timer = threading.Timer(newTimeout, self.DoJobs)
         self._timer.start()
@@ -23,7 +22,6 @@ class Worker:
                 self._timer.cancel()
 
     def DoJobs(self):
-        # print('self.DoJobs(', self)
         if self._running:
             with self._lock:
                 self.StopTimer()
@@ -31,8 +29,7 @@ class Worker:
 
                 # Do all jobs that are past their self['dt']
                 jobs = list(self._db.FindAll(Job, status='pending', _orderBy='dt'))
-                # print('nowDT=', nowDT)
-                # print('32 jobs=', jobs)
+
                 for job in jobs:
                     if job['dt'] < nowDT:
                         job.DoJob(self)
@@ -40,11 +37,11 @@ class Worker:
 
                 # Find the next 'schedule' or 'repeat' Job
                 nextJobList = list(self._db.FindAll(Job, status='pending', _orderBy='dt', _limit=1))
-                # print('nextJobList=', nextJobList)
+
                 if nextJobList:
                     nextJob = nextJobList[0]
                     delta = (nextJob['dt'] - nowDT).total_seconds()
-                    # print('delta=', delta)
+
                     self.Refresh(delta)
 
     def __del__(self):

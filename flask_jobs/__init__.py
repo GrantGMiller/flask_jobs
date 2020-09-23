@@ -26,6 +26,14 @@ class JobScheduler:
 
         self.worker = Worker(self.db)
 
+        app.teardown_appcontext(self.teardown)
+
+    def teardown(self, exception):
+        try:
+            self.worker.Kill()
+        except:
+            pass
+
     def AddJob(self, func, args=(), kwargs={}, name=None):
         '''
         Schedule a job to be run ASAP
