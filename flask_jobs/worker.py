@@ -5,8 +5,9 @@ from .jobs import Job
 
 class Worker:
     def __init__(self, db=None):
-        self._running = True
+        self.running = True
         self._db = db
+        self.logger = None
         self._timer = None
         self._lock = threading.Lock()
         self.Refresh()
@@ -22,7 +23,7 @@ class Worker:
                 self._timer.cancel()
 
     def DoJobs(self):
-        if self._running:
+        if self.running:
             with self._lock:
                 self.StopTimer()
                 nowDT = datetime.datetime.utcnow()
@@ -43,10 +44,16 @@ class Worker:
                     delta = (nextJob['dt'] - nowDT).total_seconds()
 
                     self.Refresh(delta)
+        else:
+            self.print(f'DoJobs() called, but self.running is {self.running}')
+
+    def print(self, *args):
+        if self.logger:
+            self.logger(f'{datetime.datetime.utcnow()}: ' + ' '.join([str(a) for a in args]))
 
     def __del__(self):
         self.Kill()
 
     def Kill(self):
-        self._running = False
+        self.running = False
         self.StopTimer()

@@ -17,6 +17,12 @@ class JobScheduler:
         self.worker = None
         if app is not None:
             self.init_app(app)
+        self.logger = None
+
+    def SetLogger(self, func):
+        self.logger = func
+        if self.worker:
+            self.worker.logger = func
 
     def init_app(self, app):
         if not hasattr(app, 'db'):
@@ -25,12 +31,14 @@ class JobScheduler:
             self.db = app.db
 
         self.worker = Worker(self.db)
+        self.worker.logger = self.logger
 
         app.teardown_appcontext(self.teardown)
 
     def teardown(self, exception):
         try:
-            self.worker.Kill()
+            if self.worker:
+                self.worker.Kill()
         except:
             pass
 
