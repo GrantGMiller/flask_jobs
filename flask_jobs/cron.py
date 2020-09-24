@@ -11,16 +11,22 @@ def Setup(SERVER_HOST_URL):
         JOB_COMMENT = 'flask_jobs_' + HashIt(SERVER_HOST_URL)[:10]  # create a unique cron job per host
         command = f'curl {SERVER_HOST_URL}/jobs/refresh'
 
+
         cron = CronTab(user=True)
+        # remove any bad jobs that were created by flask_jobs==1.0.0
+        for job in cron:
+            if job.comment == 'flask_jobs' and job.command == command:
+                # these files were created by flask_jobs==1.0.0 and need to be removed
+                cron.remove(job)
+
+        # create the new job if it does not exist
         for job in cron:
             if job.comment == JOB_COMMENT:
+                # job already exist, make sure it is set to the right interval
                 job.clear()
                 job.minutes.every(JOB_INTERVAL)
                 break
 
-            elif job.comment == 'flask_jobs' and job.command == command:
-                # these files were created by flask_jobs==1.0.0 and need to be removed
-                cron.remove(job)
         else:
             # JOB_COMMENT not found
             job = cron.new(command=command, comment=JOB_COMMENT)
