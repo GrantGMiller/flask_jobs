@@ -13,12 +13,13 @@ from .worker import Worker
 import flask_dictabase
 from .flask_jobs_blueprint import bp
 from . import cron
+import sys
 
 
 class JobScheduler:
     def __init__(self, app=None, logger=None, SERVER_HOST_URL=None):
-        if SERVER_HOST_URL is None:
-            raise KeyError('You must provide a SERVER_HOST_URL such as "http://mysite.com/')
+        if SERVER_HOST_URL is None and not sys.platform.startswith('win'):
+            raise KeyError('On linux, you must provide a SERVER_HOST_URL such as "http://mysite.com/')
         self.SERVER_HOST_URL = SERVER_HOST_URL
         self.app = app
         self.db = None
