@@ -9,6 +9,7 @@ def Setup(SERVER_HOST_URL):
     if not sys.platform.startswith('win'):
 
         JOB_COMMENT = 'flask_jobs_' + HashIt(SERVER_HOST_URL)[:10]  # create a unique cron job per host
+        command = f'curl {SERVER_HOST_URL}/jobs/refresh'
 
         cron = CronTab(user=True)
         for job in cron:
@@ -16,9 +17,13 @@ def Setup(SERVER_HOST_URL):
                 job.clear()
                 job.minutes.every(JOB_INTERVAL)
                 break
+
+            elif job.comment == 'flask_jobs' and job.command == command:
+                # these files were created by flask_jobs==1.0.0 and need to be removed
+                cron.remove(job)
         else:
             # JOB_COMMENT not found
-            job = cron.new(command=f'curl {SERVER_HOST_URL}/jobs/refresh', comment=JOB_COMMENT)
+            job = cron.new(command=command, comment=JOB_COMMENT)
             job.minutes.every(1)
 
         cron.write()
