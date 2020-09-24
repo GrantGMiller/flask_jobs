@@ -2,7 +2,10 @@ An easy job scheduling interface for flask projects.
 
 Install
 =======
-pip install flask_jobs
+
+::
+
+    pip install flask_jobs
 
 
 Example Flask Project
@@ -95,3 +98,9 @@ Example Flask Project
             debug=True,
             threaded=True,
         )
+
+Notes
+=====
+On Linux, a cron job is automatically created that runs once per minute.
+This could lead to your ScheduleJob() and RepeatJob() being delayed by up to 1 minute.
+AddJob() will always be executed ASAP.
