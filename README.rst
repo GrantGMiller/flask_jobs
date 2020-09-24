@@ -17,7 +17,10 @@ Example Flask Project
     from flask_jobs import JobScheduler
 
     app = Flask('JobApp')
-    jobs = JobScheduler(app)
+    jobs = JobScheduler(
+        app,
+        SERVER_HOST_URL='https://mysite.com/', # only required for linux
+        )
 
 
     def Callback(*a, **k):
