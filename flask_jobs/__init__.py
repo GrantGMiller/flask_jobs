@@ -1,46 +1,60 @@
 '''
 All datetimes are in UTC
+
+When you use AddJob, the job is executed ASAP.
+On Linux, ScheduleJob and RepeatJob may be up to 1 minute delayed, but they will execute.
+On Windows, ScheduleJob and RepeatJob will be executed at the exact time (within a few milliseconds, depending on your system)
+
 '''
 import datetime
 import pickle
 from .jobs import Job
 from .worker import Worker
-import dataset
-from flask import _app_ctx_stack, current_app
 import flask_dictabase
+from .flask_jobs_blueprint import bp
+from . import cron
 
 
 class JobScheduler:
-    def __init__(self, app=None):
+    def __init__(self, app=None, logger=None, SERVER_HOST_URL=None):
+        if SERVER_HOST_URL is None:
+            raise KeyError('You must provide a SERVER_HOST_URL such as "http://mysite.com/')
+        self.SERVER_HOST_URL = SERVER_HOST_URL
         self.app = app
         self.db = None
         self.worker = None
+        self.logger = logger
+        self.crontab = None
         if app is not None:
             self.init_app(app)
-        self.logger = None
 
-    def SetLogger(self, func):
-        self.logger = func
-        if self.worker:
-            self.worker.logger = func
+    def print(self, *args):
+        if self.logger:
+            self.logger(f'{datetime.datetime.utcnow()}: ' + ' '.join([str(a) for a in args]))
 
     def init_app(self, app):
+        self.print('JobScheduler.init_app(app=', app)
+
         if not hasattr(app, 'db'):
-            self.db = flask_dictabase.Dictabase(app)  # adds the app.db value
+            self.db = flask_dictabase.Dictabase(app)
         else:
             self.db = app.db
 
-        self.worker = Worker(self.db)
+        app.jobs = self
+
+        app.register_blueprint(bp)
+        cron.Setup(self.SERVER_HOST_URL)
+
+        self.worker = Worker(app, self.db)
         self.worker.logger = self.logger
 
         app.teardown_appcontext(self.teardown)
 
     def teardown(self, exception):
-        try:
-            if self.worker:
-                self.worker.Kill()
-        except:
-            pass
+        # This gets called after every request
+        # DO NOT kill the worker thread
+        self.print('JobScheduler.teardown_appcontext(exception=', exception)
+        pass
 
     def AddJob(self, func, args=(), kwargs={}, name=None):
         '''
@@ -123,4 +137,11 @@ class JobScheduler:
         return self.db.FindOne(Job, id=jobID)
 
     def RefreshWorker(self):
+        self.worker.Refresh()
+
+    def KillWorker(self):
+        self.worker.Kill()
+
+    def ReviveWorker(self):
+        self.worker.running = True
         self.worker.Refresh()

@@ -5,7 +5,11 @@ from flask import Flask, render_template, redirect
 from flask_jobs import JobScheduler
 
 app = Flask('JobApp')
-jobs = JobScheduler(app)
+jobs = JobScheduler(
+    app,
+    # logger=lambda *a, **k: print(*a, **k),
+    SERVER_HOST_URL='http://127.0.0.1:5000/',
+)
 
 
 def Callback(*a, **k):

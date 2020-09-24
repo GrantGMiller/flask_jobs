@@ -9,6 +9,7 @@ verify_ssl = true
 pytest = "*"
 twine = "*"
 flask-dictabase = "*"
+python-crontab = "*"
 
 [requires]
 python_version = "3.8"
