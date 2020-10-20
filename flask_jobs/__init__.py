@@ -17,7 +17,7 @@ import sys
 
 
 class JobScheduler:
-    def __init__(self, app=None, logger=None, SERVER_HOST_URL=None):
+    def __init__(self, app=None, logger=None, SERVER_HOST_URL=None, deleteOldJobs=False):
         if SERVER_HOST_URL is None and not sys.platform.startswith('win'):
             raise KeyError('On linux, you must provide a SERVER_HOST_URL such as "http://mysite.com/')
         self.SERVER_HOST_URL = SERVER_HOST_URL
@@ -26,8 +26,16 @@ class JobScheduler:
         self.worker = None
         self.logger = logger
         self.crontab = None
+        self.deleteOldJobs = deleteOldJobs
+
         if app is not None:
             self.init_app(app)
+
+        if self.deleteOldJobs:
+            with app.app_context():
+                for job in self.db.FindAll(Job, status='complete', kind='asap'):
+                    print('Deleting job from db', job)
+                    self.db.Delete(job)
 
     def print(self, *args):
         if self.logger:
@@ -47,6 +55,7 @@ class JobScheduler:
         cron.Setup(self.SERVER_HOST_URL)
 
         self.worker = Worker(app, self.db)
+        self.worker.deleteOldJobs = self.deleteOldJobs
         self.worker.logger = self.logger
 
         app.teardown_appcontext(self.teardown)

@@ -44,6 +44,11 @@ class Job(flask_dictabase.BaseTable):
             worker.Refresh()
 
         self['lastDoJobTime'] = datetime.datetime.utcnow()
+
+        if worker.deleteOldJobs and self['kind'] in ['asap', 'schedule']:
+            print('Deleting job from db', self)
+            self.db.Delete(self)
+
         return ret
 
     def Delete(self):

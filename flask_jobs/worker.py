@@ -33,7 +33,8 @@ class Worker:
                     nowDT = datetime.datetime.utcnow()
 
                     # Do all jobs that are past their self['dt']
-                    jobs = list(self._db.FindAll(Job, status='pending', _orderBy='dt'))
+                    # limit the jobs to X, because we dont want to get stuck in this loop for too long
+                    jobs = list(self._db.FindAll(Job, status='pending', _orderBy='dt', _limit=5))
 
                     for job in jobs:
                         if job['dt'] < nowDT:

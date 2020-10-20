@@ -23,6 +23,7 @@ Example Flask Project
     jobs = JobScheduler(
         app,
         SERVER_HOST_URL='https://mysite.com/', # only required for linux
+        deleteOldJobs=False,# whether to keep old jobs in the database
         )
 
 
