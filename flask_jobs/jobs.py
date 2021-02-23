@@ -17,7 +17,7 @@ class Job(flask_dictabase.BaseTable):
 
     def __init__(self, *a, **k):
         super().__init__(*a, **k)
-        self['status'] = 'pending'
+        self['status'] = k.get('status', 'pending')
 
     def DoJob(self, worker):
         # print('DoJob(self=', self)
@@ -44,10 +44,6 @@ class Job(flask_dictabase.BaseTable):
             worker.Refresh()
 
         self['lastDoJobTime'] = datetime.datetime.utcnow()
-
-        if worker.deleteOldJobs and self['kind'] in ['asap', 'schedule']:
-            print('Deleting job from db', self)
-            self.db.Delete(self)
 
         return ret
 

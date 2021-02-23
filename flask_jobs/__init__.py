@@ -31,12 +31,6 @@ class JobScheduler:
         if app is not None:
             self.init_app(app)
 
-        if self.deleteOldJobs:
-            with app.app_context():
-                for job in self.db.FindAll(Job, status='complete', kind='asap'):
-                    print('Deleting job from db', job)
-                    self.db.Delete(job)
-
     def print(self, *args):
         if self.logger:
             self.logger(f'{datetime.datetime.utcnow()}: ' + ' '.join([str(a) for a in args]))

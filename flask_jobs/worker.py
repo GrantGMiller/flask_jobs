@@ -1,7 +1,10 @@
 import datetime
 import sys
 import threading
+import time
+
 from .jobs import Job
+
 
 class Worker:
     def __init__(self, app=None, db=None):
@@ -17,8 +20,11 @@ class Worker:
 
     def Refresh(self, newTimeout=0.1):
         self.StopTimer()
-        self._timer = threading.Timer(newTimeout, self.DoJobs)
-        self._timer.start()
+        try:
+            self._timer = threading.Timer(newTimeout, self.DoJobs)
+            self._timer.start()
+        except Exception as e:
+            print('Error 27:', e)
 
     def StopTimer(self):
         if self._timer:
@@ -33,15 +39,22 @@ class Worker:
                     nowDT = datetime.datetime.utcnow()
 
                     # Do all jobs that are past their self['dt']
-                    # limit the jobs to X, because we dont want to get stuck in this loop for too long
-                    jobs = list(self._db.FindAll(Job, status='pending', _orderBy='dt', _limit=5))
+                    jobs = list(self._db.FindAll(Job, status='pending', _orderBy='dt'))
 
+                    startTime = time.time()
                     for job in jobs:
+                        if time.time() - startTime > 60:
+                            # if we stay in this loop for more than 60 seconds, stop
+                            break
+
                         if job['dt'] < nowDT:
                             job.DoJob(self)
-                            del job  # forces the job to be committed to db
+
+                            if self.deleteOldJobs and job['kind'] in ['asap', 'schedule']:
+                                self._db.Delete(job)
 
                     # on linux the refresh is triggered by a cron job
+                    # cron job calls f'curl {SERVER_HOST_URL}/jobs/refresh' once per minute
                     if sys.platform.startswith('win'):
                         # Find the next 'schedule' or 'repeat' Job
                         nextJobList = list(self._db.FindAll(Job, status='pending', _orderBy='dt', _limit=1))
@@ -54,6 +67,8 @@ class Worker:
                                 delta = 10
 
                             self.Refresh(delta)
+
+
         else:
             self.print(f'DoJobs() called, but self.running is {self.running}')
 
