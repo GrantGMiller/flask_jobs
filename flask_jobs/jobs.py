@@ -33,6 +33,10 @@ class Job(flask_dictabase.BaseTable):
             ret = func(*args, **kwargs)
             self['status'] = 'complete'
             self['error'] = ''
+            try:
+                self.Set('result', ret)
+            except:
+                self.Set('result', str(ret))
         except Exception as e:
             print('DoJob Exception:', e)
             ret = e
@@ -60,3 +64,14 @@ class Job(flask_dictabase.BaseTable):
         self['dt'] = nextDT
         self['status'] = 'pending'
         # print('after Job.Refresh(self=', self)
+
+    def dict(self):
+        return {
+            'status': self['status'],
+            'lastDoJobTime': self['lastDoJobTime'],
+            'dt': self['dt'],
+            'kind': self['kind'],
+            'error': self['error'],
+            'result': self.Get('result', None),
+            'name': self['name'],
+        }

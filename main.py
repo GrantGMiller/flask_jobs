@@ -1,7 +1,7 @@
 import datetime
 import time
 
-from flask import Flask, render_template, redirect
+from flask import Flask, render_template, redirect, jsonify
 from flask_jobs import JobScheduler
 
 app = Flask('JobApp')
@@ -15,6 +15,7 @@ jobs = JobScheduler(
 
 def Callback(*a, **k):
     print('Callback(', a, k)
+    return 'Callback return'
 
 
 @app.route('/')
@@ -75,6 +76,11 @@ def Delete(ID):
     job = jobs.GetJob(int(ID))
     job.Delete()
     return redirect('/')
+
+
+@app.route('/jobs_json')
+def JobsJson():
+    return jsonify([job.dict() for job in jobs.GetJobs()])
 
 
 if __name__ == '__main__':
