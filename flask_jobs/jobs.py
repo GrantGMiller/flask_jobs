@@ -35,8 +35,15 @@ class Job(flask_dictabase.BaseTable):
             self['error'] = ''
             try:
                 self.Set('result', ret)
+                callbackSuccess = pickle.loads(self['success'])
+                if callbackSuccess:
+                    callbackSuccess(self)
             except:
                 self.Set('result', str(ret))
+                callbackError = pickle.loads(self['error'])
+                if callbackError:
+                    callbackError(self)
+
         except Exception as e:
             print('DoJob Exception:', e)
             ret = e
@@ -52,6 +59,10 @@ class Job(flask_dictabase.BaseTable):
         return ret
 
     def Delete(self):
+        '''
+        Use this to cancel a job that has not yet completed.
+        :return:
+        '''
         self.db.Delete(self)
 
     def Refresh(self):

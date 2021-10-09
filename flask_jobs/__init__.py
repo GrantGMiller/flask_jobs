@@ -18,6 +18,13 @@ import sys
 
 class JobScheduler:
     def __init__(self, app=None, logger=None, SERVER_HOST_URL=None, deleteOldJobs=False):
+        '''
+
+        :param app:
+        :param logger:
+        :param SERVER_HOST_URL:
+        :param deleteOldJobs: bool > True means delete jobs from database after they complete
+        '''
         if SERVER_HOST_URL is None and not sys.platform.startswith('win'):
             raise KeyError('On linux, you must provide a SERVER_HOST_URL such as "http://mysite.com/')
         self.SERVER_HOST_URL = SERVER_HOST_URL
@@ -60,12 +67,14 @@ class JobScheduler:
         self.print('JobScheduler.teardown_appcontext(exception=', exception)
         pass
 
-    def AddJob(self, func, args=(), kwargs={}, name=None):
+    def AddJob(self, func, args=(), kwargs={}, name=None, success=None, error=None):
         '''
         Schedule a job to be run ASAP
         :param func: callable
         :param args: tuple
         :param kwargs: dict
+        :param success: function takes one argument (the job object)
+        :param error: function takes one argument (the job object)
         :return:
         '''
         newJob = self.db.New(
@@ -76,18 +85,22 @@ class JobScheduler:
             kwargs=pickle.dumps(kwargs),
             kind='asap',
             name=name,
+            success=pickle.dumps(success),
+            error=pickle.dumps(error),
         )
         if self.worker:
             self.worker.Refresh()
         return newJob
 
-    def ScheduleJob(self, dt, func, args=(), kwargs={}, name=None):
+    def ScheduleJob(self, dt, func, args=(), kwargs={}, name=None, success=None, error=None):
         '''
         Schedule a job to be run once at a future time
         :param dt: datetime in UTC
         :param func: callable
         :param args: tuple
         :param kwargs: dict
+        :param success: function takes one argument (the job object)
+        :param error: function takes one argument (the job object)
         :return:
         '''
         newJob = self.db.New(
@@ -98,12 +111,14 @@ class JobScheduler:
             kwargs=pickle.dumps(kwargs),
             kind='schedule',
             name=name,
+            success=pickle.dumps(success),
+            error=pickle.dumps(error),
         )
         if self.worker:
             self.worker.Refresh()
         return newJob
 
-    def RepeatJob(self, startDT=None, func=None, args=(), kwargs={}, name=None, **k):
+    def RepeatJob(self, startDT=None, func=None, args=(), kwargs={}, name=None, , success=None, error=None, **k):
         '''
         :param startDT: the first datetime that this job is executed. All future jobs will be calculated from this value.
         :param func: callable
@@ -111,6 +126,8 @@ class JobScheduler:
         :param kwargs: dict
         :param name: str - used to give the job a friendly name
         :param k: weeks, days, hours, minutes, seconds (anything supported by datetime.timedelta.__init__
+        :param success: function takes one argument (the job object)
+        :param error: function takes one argument (the job object)
         :return:
         '''
         if len(k) == 0:
@@ -127,6 +144,8 @@ class JobScheduler:
             kind='repeat',
             deltaKwargs=k,
             name=name,
+            success=pickle.dumps(success),
+            error=pickle.dumps(error),
         )
 
         if self.worker:
