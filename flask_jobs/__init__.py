@@ -67,7 +67,7 @@ class JobScheduler:
         self.print('JobScheduler.teardown_appcontext(exception=', exception)
         pass
 
-    def AddJob(self, func, args=(), kwargs={}, name=None, success=None, error=None):
+    def AddJob(self, func, args=(), kwargs={}, name=None, successCallback=None, errorCallback=None):
         '''
         Schedule a job to be run ASAP
         :param func: callable
@@ -85,14 +85,14 @@ class JobScheduler:
             kwargs=pickle.dumps(kwargs),
             kind='asap',
             name=name,
-            success=pickle.dumps(success),
-            error=pickle.dumps(error),
+            successCallback=pickle.dumps(successCallback),
+            errorCallback=pickle.dumps(errorCallback),
         )
         if self.worker:
             self.worker.Refresh()
         return newJob
 
-    def ScheduleJob(self, dt, func, args=(), kwargs={}, name=None, success=None, error=None):
+    def ScheduleJob(self, dt, func, args=(), kwargs={}, name=None, successCallback=None, errorCallback=None):
         '''
         Schedule a job to be run once at a future time
         :param dt: datetime in UTC
@@ -111,14 +111,14 @@ class JobScheduler:
             kwargs=pickle.dumps(kwargs),
             kind='schedule',
             name=name,
-            success=pickle.dumps(success),
-            error=pickle.dumps(error),
+            successCallback=pickle.dumps(successCallback),
+            errorCallback=pickle.dumps(errorCallback),
         )
         if self.worker:
             self.worker.Refresh()
         return newJob
 
-    def RepeatJob(self, startDT=None, func=None, args=(), kwargs={}, name=None, , success=None, error=None, **k):
+    def RepeatJob(self, startDT=None, func=None, args=(), kwargs={}, name=None, successCallback=None, errorCallback=None, **k):
         '''
         :param startDT: the first datetime that this job is executed. All future jobs will be calculated from this value.
         :param func: callable
@@ -144,8 +144,8 @@ class JobScheduler:
             kind='repeat',
             deltaKwargs=k,
             name=name,
-            success=pickle.dumps(success),
-            error=pickle.dumps(error),
+            successCallback=pickle.dumps(successCallback),
+            errorCallback=pickle.dumps(errorCallback),
         )
 
         if self.worker:

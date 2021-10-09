@@ -15,7 +15,7 @@ jobs = JobScheduler(
 
 def Callback(*a, **k):
     print('Callback(', a, k)
-    return 'Callback return'
+    return 'This string was returned by the Callback() function'
 
 
 @app.route('/')
@@ -33,7 +33,9 @@ def NowJob():
         func=Callback,
         args=('Now Job now={}'.format(datetime.datetime.utcnow()),),
         kwargs={'one': 'won', 'two': 'too'},
-        name='Now Job at {}'.format(time.asctime())
+        name='Now Job at {}'.format(time.asctime()),
+        successCallback=SuccessCallback,
+        errorCallback=ErrorCallback,
     )
     return redirect('/')
 
@@ -49,7 +51,9 @@ def LaterJob():
             dt
         ),),
         kwargs={'one': 'won', 'two': 'too'},
-        name='ScheduleJob Job at {}'.format(time.asctime())
+        name='ScheduleJob Job at {}'.format(time.asctime()),
+        successCallback=SuccessCallback,
+        errorCallback=ErrorCallback,
     )
     return redirect('/')
 
@@ -67,8 +71,35 @@ def Repeat():
         kwargs={'one': 'won', 'two': 'too'},
         name='RepeatJob Job at {}'.format(time.asctime()),
         seconds=10,
+        successCallback=SuccessCallback,
+        errorCallback=ErrorCallback,
     )
     return redirect('/')
+
+
+@app.route('/add_fail_job')
+def Fail():
+    jobs.AddJob(
+        func=Nope,
+        args=('Now Job now={}'.format(datetime.datetime.utcnow()),),
+        kwargs={'one': 'won', 'two': 'too'},
+        name='Now Job at {}'.format(time.asctime()),
+        successCallback=SuccessCallback,
+        errorCallback=ErrorCallback,
+    )
+    return redirect('/')
+
+
+def Nope(*a, **k):
+    raise Exception('Nope() function raising exception')
+
+
+def SuccessCallback(j):
+    print('SuccessCallback(j=', j)
+
+
+def ErrorCallback(j):
+    print('ErrorCallback(j=', j)
 
 
 @app.route('/delete/<ID>')

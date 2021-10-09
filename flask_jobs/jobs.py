@@ -33,22 +33,32 @@ class Job(flask_dictabase.BaseTable):
             ret = func(*args, **kwargs)
             self['status'] = 'complete'
             self['error'] = ''
+
             try:
                 self.Set('result', ret)
-                callbackSuccess = pickle.loads(self['success'])
+            except Exception as e:
+                print('42 Exception', e)
+                self.Set('result', str(ret))
+
+            try:
+                callbackSuccess = pickle.loads(self['successCallback'])
                 if callbackSuccess:
                     callbackSuccess(self)
-            except:
-                self.Set('result', str(ret))
-                callbackError = pickle.loads(self['error'])
-                if callbackError:
-                    callbackError(self)
+            except Exception as e:
+                print('Error calling successCallback(job):' + str(e))
 
         except Exception as e:
             print('DoJob Exception:', e)
             ret = e
             self['status'] = 'error'
             self['error'] = str(e)
+
+            try:
+                callbackError = pickle.loads(self['errorCallback'])
+                if callbackError:
+                    callbackError(self)
+            except Exception as e:
+                print('Error calling errorCallback(job):' + str(e))
 
         if self['kind'] == 'repeat':
             self.Refresh()
